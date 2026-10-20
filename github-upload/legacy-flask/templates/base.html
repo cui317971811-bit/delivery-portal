@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}中压物料交期门户{% endblock %}</title>
+  <style>
+    :root{
+      --bg:#f4f6f9; --card:#ffffff; --ink:#1f2733; --muted:#6b7785;
+      --line:#e3e8ef; --brand:#1f6feb; --brand-d:#1857c0;
+      --ok:#1a9d5a; --warn:#d9822b; --err:#d64545; --chip:#eef3fb;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+      background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5}
+    header.top{background:var(--card);border-bottom:1px solid var(--line);
+      padding:12px 24px;display:flex;align-items:center;justify-content:space-between}
+    header.top .logo{font-weight:700;font-size:16px;color:var(--brand)}
+    header.top .who{color:var(--muted);font-size:13px}
+    header.top a.btn{margin-left:12px}
+    .wrap{max-width:1200px;margin:20px auto;padding:0 24px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:10px;
+      padding:18px 20px;margin-bottom:18px}
+    .card h2{margin:0 0 12px;font-size:15px}
+    .btn{display:inline-block;background:var(--brand);color:#fff;border:none;
+      padding:8px 14px;border-radius:7px;cursor:pointer;font-size:13px;text-decoration:none}
+    .btn:hover{background:var(--brand-d)}
+    .btn.ghost{background:#fff;color:var(--brand);border:1px solid var(--brand)}
+    .btn.sm{padding:5px 10px;font-size:12px}
+    table{width:100%;border-collapse:collapse;font-size:13px;background:#fff}
+    th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+    th{background:#f0f4fa;position:sticky;top:0;font-weight:600}
+    tr:nth-child(even) td{background:#fafbfd}
+    td .edit{width:100%;border:1px solid transparent;background:transparent;
+      padding:4px 6px;border-radius:5px;font:inherit;color:inherit}
+    td .edit:focus{outline:none;border-color:var(--brand);background:#fff}
+    .pill{display:inline-block;background:var(--chip);color:var(--brand-d);
+      border-radius:20px;padding:2px 10px;font-size:12px;margin:2px 4px 2px 0}
+    .flash{padding:10px 14px;border-radius:8px;margin:0 0 14px}
+    .flash.success{background:#e7f6ee;color:var(--ok);border:1px solid #bfe6cd}
+    .flash.error{background:#fdeaea;color:var(--err);border:1px solid #f3c4c4}
+    .login-box{max-width:380px;margin:80px auto;background:#fff;
+      border:1px solid var(--line);border-radius:12px;padding:28px 26px}
+    .login-box h1{font-size:18px;margin:0 0 4px}
+    .login-box p.sub{color:var(--muted);margin:0 0 18px;font-size:13px}
+    label{display:block;font-size:13px;margin:12px 0 5px;color:var(--muted)}
+    input[type=text],input[type=password]{width:100%;padding:10px 12px;border:1px solid var(--line);
+      border-radius:8px;font-size:14px}
+    input:focus{outline:none;border-color:var(--brand)}
+    .hint{font-size:12px;color:var(--muted);margin-top:14px}
+    .stat{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:6px}
+    .stat b{font-size:20px;color:var(--brand)}
+    .save-tip{font-size:12px;color:var(--ok);opacity:0;transition:opacity .3s}
+    .save-tip.show{opacity:1}
+    .sheet-title{font-weight:700;margin:18px 0 6px;color:var(--ink)}
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+  {% if session.username %}
+  <header class="top">
+    <span class="logo">中压物料交期门户</span>
+    <span class="who">
+      {% if session.role == 'admin' %}管理员{% else %}供应商：{{ session.username }}{% endif %}
+      <a class="btn ghost sm" href="{{ url_for('logout') }}">退出登录</a>
+    </span>
+  </header>
+  {% endif %}
+  <div class="wrap">
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+      {% for cat,msg in msgs %}
+        <div class="flash {{ cat }}">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+    {% block body %}{% endblock %}
+  </div>
+</body>
+</html>

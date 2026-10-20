@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>中压物料交期跟进 · 供应商交付门户</title>
+  <link rel="icon" href="assets/logo.webp" />
+  <link rel="stylesheet" href="css/style.css" />
+  <!-- Supabase JS SDK（CDN） -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- SheetJS（管理员导出 .xlsx 用） -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- 站点配置：复制 js/config.example.js 为 js/config.js 后填写 -->
+  <script src="js/config.js"></script>
+  <script src="js/supabase.js"></script>
+</head>
+<body>
+  <!-- 顶栏 -->
+  <header id="topbar" class="topbar hidden">
+    <div class="brand">
+      <img src="assets/logo.webp" alt="阳光电源" class="brand-logo" />
+      <span class="brand-title">中压物料交期跟进</span>
+    </div>
+    <div class="user-box">
+      <span id="user-name"></span>
+      <button id="btn-change-pwd" class="btn-link">修改密码</button>
+      <button id="btn-logout" class="btn-link">退出</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- 登录视图 -->
+    <section id="view-login" class="view">
+      <div class="card login-card">
+        <img src="assets/logo.webp" alt="阳光电源" class="login-logo" />
+        <h1>供应商登录</h1>
+        <p class="hint">账号为您的「供应商名称」，初始密码请联系管理员（默认 Scm@2026）。</p>
+        <form id="form-login">
+          <label>供应商名称
+            <input id="login-name" type="text" autocomplete="username" placeholder="如：北京ABB" required />
+          </label>
+          <label>密码
+            <input id="login-pwd" type="password" autocomplete="current-password" required />
+          </label>
+          <button type="submit" class="btn-primary">登录</button>
+        </form>
+        <p class="hint">忘记密码？请联系管理员重置。</p>
+        <div id="login-msg" class="msg"></div>
+      </div>
+    </section>
+
+    <!-- 公告条（登录后可见） -->
+    <div id="notice-bar" class="notice-bar hidden">
+      <div class="notice-main">
+        <span class="notice-tag">公告</span>
+        <span id="notice-title"></span>
+        <button id="btn-notice-history" class="btn-link">历史公告</button>
+        <button id="btn-notice-close" class="btn-link">关闭</button>
+      </div>
+      <div id="notice-content" class="notice-content"></div>
+    </div>
+
+    <!-- 我的订单视图（供应商） -->
+    <section id="view-orders" class="view hidden">
+      <div class="page-head">
+        <h2>我的订单</h2>
+        <div class="actions">
+          <input id="orders-search" class="search-input" type="text" placeholder="搜索订单号/物料/描述…" />
+          <select id="orders-status-filter" class="search-input">
+            <option value="">全部状态</option>
+            <option value="按时交付">按时交付</option>
+            <option value="延期">延期</option>
+            <option value="待确认">待确认</option>
+          </select>
+          <button id="btn-batch-fill" class="btn-secondary">批量填写</button>
+          <button id="btn-audit" class="btn-secondary">查看修改记录</button>
+        </div>
+      </div>
+      <div id="tabs" class="tabs"></div>
+      <div id="orders-table-wrap" class="table-wrap"></div>
+    </section>
+
+    <!-- 管理后台视图（管理员） -->
+    <section id="view-admin" class="view hidden">
+      <div class="page-head">
+        <h2>管理后台</h2>
+        <div class="actions">
+          <button id="btn-export-csv" class="btn-secondary">导出 CSV</button>
+          <button id="btn-export-xlsx" class="btn-secondary">导出 Excel(.xlsx)</button>
+          <button id="btn-refresh-admin" class="btn-secondary">刷新</button>
+        </div>
+      </div>
+      <div class="admin-tabs">
+        <button class="admin-tab active" data-tab="orders">全部订单</button>
+        <button class="admin-tab" data-tab="suppliers">供应商账号</button>
+        <button class="admin-tab" data-tab="audit">修改记录</button>
+        <button class="admin-tab" data-tab="announcements">公告管理</button>
+        <button class="admin-tab" data-tab="import">数据导入</button>
+      </div>
+      <div id="admin-orders" class="admin-panel"></div>
+      <div id="admin-suppliers" class="admin-panel hidden"></div>
+      <div id="admin-audit" class="admin-panel hidden"></div>
+      <div id="admin-announcements" class="admin-panel hidden"></div>
+      <div id="admin-import" class="admin-panel hidden"></div>
+    </section>
+  </main>
+
+  <!-- 修改密码弹窗 -->
+  <div id="modal-pwd" class="modal hidden">
+    <div class="modal-card">
+      <h3>修改密码</h3>
+      <form id="form-pwd">
+        <label>当前密码<input id="pwd-old" type="password" required /></label>
+        <label>新密码<input id="pwd-new" type="password" minlength="6" required /></label>
+        <label>确认新密码<input id="pwd-new2" type="password" required /></label>
+        <div class="modal-actions">
+          <button type="button" id="btn-pwd-cancel" class="btn-secondary">取消</button>
+          <button type="submit" class="btn-primary">保存</button>
+        </div>
+      </form>
+      <div id="pwd-msg" class="msg"></div>
+    </div>
+  </div>
+
+  <!-- 批量填写弹窗 -->
+  <div id="modal-batch" class="modal hidden">
+    <div class="modal-card">
+      <h3>批量填写（仅对当前项目标签下勾选的行生效）</h3>
+      <label>是否可以按时交付
+        <select id="batch-status">
+          <option value="">不修改</option>
+          <option value="按时交付">按时交付</option>
+          <option value="延期">延期</option>
+          <option value="待确认">待确认</option>
+        </select>
+      </label>
+      <label>供应商回复
+        <textarea id="batch-reply" rows="2" placeholder="留空则不修改"></textarea>
+      </label>
+      <label>备注
+        <textarea id="batch-remarks" rows="2" placeholder="留空则不修改"></textarea>
+      </label>
+      <div class="modal-actions">
+        <button type="button" id="btn-batch-cancel" class="btn-secondary">取消</button>
+        <button type="button" id="btn-batch-save" class="btn-primary">应用到勾选行</button>
+      </div>
+      <div id="batch-msg" class="msg"></div>
+    </div>
+  </div>
+
+  <!-- 修改记录弹窗 -->
+  <div id="modal-audit" class="modal hidden">
+    <div class="modal-card modal-wide">
+      <h3>修改记录</h3>
+      <div id="audit-list" class="audit-list"></div>
+      <div class="modal-actions">
+        <button type="button" id="btn-audit-close" class="btn-secondary">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 提示消息 -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- 业务脚本（顺序：auth -> orders -> admin -> app） -->
+  <script src="js/auth.js"></script>
+  <script src="js/orders.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
