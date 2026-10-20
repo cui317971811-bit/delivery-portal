@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}管理后台 - 中压物料交期门户{% endblock %}
+{% block body %}
+  <div class="card">
+    <h2>管理后台</h2>
+    <div class="stat">
+      <div><b>{{ total }}</b><br><span style="color:var(--muted)">订单总条数</span></div>
+      <div><b>{{ suppliers|length }}</b><br><span style="color:var(--muted)">账号数</span></div>
+    </div>
+    <form method="post" action="{{ url_for('admin_import') }}" style="margin-top:10px">
+      <button class="btn" type="submit">↻ 重新从 Excel 导入数据</button>
+      <span style="color:var(--muted);font-size:12px;margin-left:10px">增量更新：保留供应商已填写的回复/备注</span>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>供应商账号管理</h2>
+    <form method="post" action="{{ url_for('admin_add_supplier') }}" style="margin-bottom:14px">
+      <input type="text" name="supplier_name" placeholder="新增供应商名称（作为登录名）" style="max-width:280px;display:inline-block">
+      <input type="text" name="password" placeholder="初始密码（默认 Scm@2026）" style="max-width:220px;display:inline-block">
+      <button class="btn sm" type="submit">添加账号</button>
+    </form>
+    <table>
+      <thead><tr><th>登录名</th><th>显示名称</th><th>角色</th><th>重置密码</th></tr></thead>
+      <tbody>
+        {% for s in suppliers %}
+        <tr>
+          <td>{{ s.username }}</td>
+          <td>{{ s.display_name }}</td>
+          <td><span class="pill">{{ '管理员' if s.role=='admin' else '供应商' }}</span></td>
+          <td>
+            {% if s.role != 'admin' or s.username != 'admin' %}
+            <form method="post" action="{{ url_for('admin_reset_password') }}" style="display:flex;gap:6px">
+              <input type="hidden" name="user_id" value="{{ s.id }}">
+              <input type="text" name="password" placeholder="新密码" style="max-width:150px">
+              <button class="btn ghost sm" type="submit">重置</button>
+            </form>
+            {% else %}<span style="color:var(--muted)">—</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card" style="padding:0;overflow:auto">
+    <h2 style="padding:16px 18px 0">全部订单（只读）</h2>
+    <table style="margin:10px 0">
+      <thead>
+        <tr>
+          <th>来源</th><th>供应商</th><th>单号</th><th>项目</th><th>物料</th>
+          <th>订购</th><th>未交</th><th>已交</th><th>供应商回复</th><th>备注</th><th>更新时间</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td>{{ r.source_sheet or '' }}</td>
+          <td>{{ r.supplier_name or '' }}</td>
+          <td>{{ r.doc_no or '' }}</td>
+          <td>{{ r.project_name or '' }}</td>
+          <td>{{ r.material or '' }}</td>
+          <td>{{ r.qty_ordered|fmt_num }}</td>
+          <td>{{ r.qty_outstanding|fmt_num }}</td>
+          <td>{{ r.qty_delivered|fmt_num }}</td>
+          <td>{{ r.supplier_reply or '' }}</td>
+          <td>{{ r.remarks or '' }}</td>
+          <td style="color:var(--muted)">{{ r.updated_at or '' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
